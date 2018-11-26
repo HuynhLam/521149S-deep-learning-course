@@ -1,0 +1,10 @@
+__pycache__
+.ipynb_checkpoints
+create_training_data_from_cifar_10.py
+data/
+model/
+pokemon_utils.py
+newPokemon/
+train_gans.ipynb
+tf_data/
+runs/
