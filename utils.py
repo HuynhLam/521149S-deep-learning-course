@@ -1,21 +1,38 @@
 from __future__ import division
 import argparse, sys, os, errno, torch
 import keras
+from keras.callbacks import TensorBoard
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-import matplotlib.pyplot as plt
+
+import tensorflow as tf
 import speech_recognition as sr
 import pyaudio
 from sklearn.mixture import BayesianGaussianMixture
 import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from IPython import display
-from matplotlib import pyplot as plt
+
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import logging
 
 
+def write_log(callback, names, logs, batch_no):
+    '''
+    Simple Tensorboard logs
+    '''
+    summary = tf.Summary()
+    
+    for name, value in zip(names, logs):
+        summary_value = summary.value.add()
+        summary_value.simple_value = value
+        summary_value.tag = name
+        callback.writer.add_summary(summary, batch_no)
+        
+    callback.writer.flush()
 
 class Logger:
-
     def __init__(self, model_name, data_name):
         self.model_name = model_name
         self.data_name = data_name
@@ -138,7 +155,32 @@ class Logger:
             if e.errno != errno.EEXIST:
                 raise
 
+              
 
+def save_images_to_disk(model, epoch, output):
+        if not os.path.exists(output):
+            os.makedirs(output)
+
+        r, c = 8, 8
+        plt.figure(figsize = (r, c))
+        gs1 = gridspec.GridSpec(r, c, wspace=0.0, hspace=0.0)
+
+        noise = np.random.normal(0, 1, (r * c, model.latent_dim))
+        gen_imgs = model.generator.predict(noise)
+
+        # Rescale images 0 - 1
+        gen_imgs = 0.5 * gen_imgs + 0.5
+        cnt = 0
+
+        for i in range(r*c):
+            ax1 = plt.subplot(gs1[i])
+            ax1.imshow(gen_imgs[cnt,:,:,0], cmap='gray', aspect='auto')
+            ax1.axis('off')
+            cnt += 1
+
+        plt.savefig(os.path.join(output, 'mnist_{:09d}.png'.format(epoch)))
+        plt.show()
+            
 def load_mnist():
     # Load MNIST from built-in keras
     mnist = keras.datasets.mnist
